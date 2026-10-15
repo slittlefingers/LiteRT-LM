@@ -889,6 +889,9 @@ LlmLiteRtNpuCompiledModelExecutor::DecodeLogits(
 
   current_step_++;
   ran_decode_ = true;
+  // Privacy: wipe consumed token-id values, keeping the frontier token and
+  // preserving the vector size (position accounting is unaffected).
+  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
 
   return output_logits;
 }
@@ -991,6 +994,8 @@ LlmLiteRtNpuCompiledModelExecutor::PopPendingAcceptedToken(
   LITERT_RETURN_IF_ERROR(
       processed_tokens_.AddPendingInputToken({std::move(next_token)}));
   current_step_++;
+  // Privacy: wipe consumed token-id values, keeping the frontier token.
+  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
   latency_stats_.decode_token_queue_latency_us +=
       absl::ToInt64Microseconds(absl::Now() - start_queue);
 
@@ -1186,6 +1191,8 @@ LlmLiteRtNpuCompiledModelExecutor::Decode(
   LITERT_RETURN_IF_ERROR(
       processed_tokens_.AddPendingInputToken({std::move(first_token)}));
   current_step_++;
+  // Privacy: wipe consumed token-id values, keeping the frontier token.
+  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
 
   latency_stats_.decode_num_tokens++;
   latency_stats_.decode_e2e_latency_us +=
@@ -1344,6 +1351,9 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::PrefillInternal(
     processed_input_tokens.push_back(ids[i]);
   }
   processed_tokens_.AddProcessedTokens(processed_input_tokens);
+  // Privacy: wipe consumed token-id values from the accumulated history,
+  // keeping the frontier token and preserving the vector size.
+  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
   if (!processed_input_tokens.empty()) {
     NPU_EXECUTOR_LOG(INFO) << "Prefill tokens: "
                            << FormatFirstN<int>(processed_input_tokens);
@@ -1690,6 +1700,8 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::DecodeSingleToken(
 
   LITERT_RETURN_IF_ERROR(DecodeInternal(step, token));
   current_step_ = step + 1;
+  // Privacy: wipe consumed token-id values, keeping the frontier token.
+  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
   return absl::OkStatus();
 }
 

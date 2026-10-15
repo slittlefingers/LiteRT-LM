@@ -184,6 +184,20 @@ void ProcessedTokens::ScrubAll() {
   }
 }
 
+void ProcessedTokens::ScrubConsumedValues(int keep_from) {
+  for (auto& t : tokens_) {
+    const int n =
+        std::min<int>(keep_from, static_cast<int>(t.token_ids.size()));
+    for (int i = 0; i < n; ++i) {
+      // Preserve negative sentinel ids (e.g. vision/audio placeholders); the
+      // attention mask is built from them. Overwrite ordinary text tokens.
+      if (t.token_ids[i] >= 0) {
+        t.token_ids[i] = 0;
+      }
+    }
+  }
+}
+
 int ProcessedTokens::GetStep() const { return tokens_[0].token_ids.size(); }
 
 bool ProcessedTokens::HasPendingInputToken() const {

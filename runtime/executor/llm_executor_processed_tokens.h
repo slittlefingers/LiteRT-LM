@@ -149,6 +149,16 @@ class ProcessedTokens {
   // final size is expected to be 0.
   void ScrubAll();
 
+  // Live privacy scrub: overwrites the plaintext values of already-consumed
+  // token positions [0, keep_from) in-place with 0, for ALL candidates, while
+  // leaving the vector size (and therefore GetStep()/position accounting)
+  // unchanged. Negative sentinel ids (e.g. vision/audio placeholders) are
+  // preserved, since the attention mask depends on them. `keep_from` should be
+  // the frontier (current step - 1): the most recent token is kept because it
+  // is still read as the next step's seed. Unlike ScrubAll(), this does NOT
+  // empty the vector and is safe to call mid-session.
+  void ScrubConsumedValues(int keep_from);
+
  private:
   int GetStep() const;
   bool HasPendingInputToken() const;
