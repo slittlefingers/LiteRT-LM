@@ -14,6 +14,7 @@
 
 #include "runtime/executor/llm_executor_processed_tokens.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -163,6 +164,22 @@ const std::vector<int>& ProcessedTokens::GetTokensUnsafe() const {
 
 void ProcessedTokens::InvalidatePendingInputToken() {
   for (auto& t : tokens_) {
+    t.pending_input_token = nullptr;
+  }
+}
+
+void ProcessedTokens::ScrubAll() {
+  for (auto& t : tokens_) {
+    // Zero the live [0, size) region AND the spare [size, capacity) region: a
+    // vector that was once longer keeps the older history's bytes in its spare
+    // capacity, which a plain fill over [begin, end) cannot reach. Grow to
+    // capacity (no realloc since size <= capacity), zero everything, then empty
+    // and release the buffer.
+    const size_t cap = t.token_ids.capacity();
+    t.token_ids.resize(cap);
+    std::fill(t.token_ids.begin(), t.token_ids.end(), 0);
+    t.token_ids.clear();
+    t.token_ids.shrink_to_fit();
     t.pending_input_token = nullptr;
   }
 }

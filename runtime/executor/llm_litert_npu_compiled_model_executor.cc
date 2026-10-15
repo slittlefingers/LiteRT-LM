@@ -2192,6 +2192,10 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::Reset() {
     }
   }
   LITERT_RETURN_IF_ERROR(processed_tokens_.RollBackToStep(0));
+  // Privacy: physically wipe the plaintext token-id bytes, symmetric to the
+  // ClearKVCache() calls below. RollBackToStep(0) only resets the size and
+  // leaves the token ids resident in the heap allocation.
+  processed_tokens_.ScrubAll();
   latency_stats_ = {};
   last_verify_activations_.clear();
   pending_accepted_tokens_.clear();
@@ -2255,6 +2259,10 @@ LlmLiteRtNpuCompiledModelExecutor::CloneContext() const {
 absl::Status LlmLiteRtNpuCompiledModelExecutor::RestoreContext(
     std::unique_ptr<LlmContext> context_data) {
   current_step_ = context_data->runtime_state().current_step;
+  // Privacy: wipe the outgoing session's token-id bytes before the copy-assign
+  // below reuses this vector's buffer, which would otherwise leave the previous
+  // session's tokens resident in the spare capacity of the reused allocation.
+  processed_tokens_.ScrubAll();
   processed_tokens_ = context_data->processed_context().processed_tokens();
   if (context_data->runtime_config().sampler_params.has_value()) {
     sampler_params_ = *context_data->runtime_config().sampler_params;
