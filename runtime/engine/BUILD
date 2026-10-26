@@ -478,3 +478,17 @@ cc_test(
         "@litert//tflite/schema:schema_fbs",
     ],
 )
+
+cc_test(
+    name = "npu_token_id_scrubbing_test",
+    srcs = ["npu_token_id_scrubbing_test.cc"],
+    data = ["//runtime/testdata"],
+    deps = [
+        ":engine_settings",
+        ":litert_lm_lib",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+        "//runtime/executor:llm_executor_settings",
+        "//runtime/util:test_utils",
+    ],
+)

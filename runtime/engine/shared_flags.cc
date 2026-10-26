@@ -195,6 +195,11 @@ ABSL_FLAG(bool, use_hw_masking_for_npu, true,
 ABSL_FLAG(bool, use_hw_cache_update_for_npu, true,
           "If true, use HW cache update for NPU.");
 ABSL_FLAG(bool, use_hw_ple_for_npu, true, "If true, use HW PLE for NPU.");
+ABSL_FLAG(bool, enable_npu_token_id_scrubbing, false,
+          "Opt in to clearing consumed token IDs and token storage on reset/"
+          "context restore in the specialized TF_LITE_AUX NPU executor. "
+          "Disabled by default; preserves the frontier and multimodal sentinels. "
+          "Does not erase all process memory or KV cache.");
 ABSL_FLAG(bool, enable_npu_debug_logging, false,
           "If true, enable debug logging for NPU.");
 ABSL_FLAG(

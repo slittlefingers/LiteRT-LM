@@ -2166,4 +2166,44 @@ TEST(EngineCTest, ConversationOptionalArgsTest) {
   EXPECT_EQ(text, "\xE6\xB2\xBF");
 }
 
+TEST(EngineCTest, NpuTokenIdScrubbingDefaultsOffAndCanBeToggled) {
+  EngineSettingsPtr settings(
+      litert_lm_engine_settings_create("test_model_path_1", "npu", nullptr,
+                                      nullptr),
+      &litert_lm_engine_settings_delete);
+  ASSERT_NE(settings, nullptr);
+  auto config = settings->settings->GetMainExecutorSettings()
+                    .GetBackendConfig<litert::lm::NpuConfig>();
+  ASSERT_TRUE(config.ok());
+  EXPECT_FALSE(config->enable_token_id_scrubbing);
+  EXPECT_EQ(litert_lm_engine_settings_set_npu_token_id_scrubbing(
+                settings.get(), true), 0);
+  auto enabled_config = settings->settings->GetMainExecutorSettings()
+                            .GetBackendConfig<litert::lm::NpuConfig>();
+  ASSERT_TRUE(enabled_config.ok());
+  EXPECT_TRUE(enabled_config->enable_token_id_scrubbing);
+  EXPECT_TRUE(enabled_config->enable_neon_for_npu_greedy_sampling);
+  EXPECT_EQ(litert_lm_engine_settings_set_npu_token_id_scrubbing(
+                settings.get(), false), 0);
+  auto disabled_config = settings->settings->GetMainExecutorSettings()
+                             .GetBackendConfig<litert::lm::NpuConfig>();
+  ASSERT_TRUE(disabled_config.ok());
+  EXPECT_FALSE(disabled_config->enable_token_id_scrubbing);
+}
+
+TEST(EngineCTest, NpuTokenIdScrubbingRejectsInvalidOrNonNpuSettings) {
+  EXPECT_EQ(litert_lm_engine_settings_set_npu_token_id_scrubbing(nullptr, true),
+            -1);
+  LiteRtLmEngineSettings empty;
+  EXPECT_EQ(litert_lm_engine_settings_set_npu_token_id_scrubbing(&empty, true),
+            -1);
+  EngineSettingsPtr settings(
+      litert_lm_engine_settings_create("test_model_path_1", "cpu", nullptr,
+                                      nullptr),
+      &litert_lm_engine_settings_delete);
+  ASSERT_NE(settings, nullptr);
+  EXPECT_EQ(litert_lm_engine_settings_set_npu_token_id_scrubbing(
+                settings.get(), true), -1);
+}
+
 }  // namespace

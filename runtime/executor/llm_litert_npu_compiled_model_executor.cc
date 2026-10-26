@@ -891,7 +891,9 @@ LlmLiteRtNpuCompiledModelExecutor::DecodeLogits(
   ran_decode_ = true;
   // Privacy: wipe consumed token-id values, keeping the frontier token and
   // preserving the vector size (position accounting is unaffected).
-  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  }
 
   return output_logits;
 }
@@ -946,6 +948,11 @@ LlmLiteRtNpuCompiledModelExecutor::DecodeNonSpeculative(
         absl::ToInt64Microseconds(absl::Now() - start_sample);
     ++current_step_;
     ran_decode_ = true;
+    // Match DecodeLogits: wipe consumed history while preserving the frontier
+    // token and position accounting. The constrained path is scrubbed there.
+    if (npu_config_.enable_token_id_scrubbing) {
+      processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+    }
   }
 
   std::shared_ptr<TokenData> last_output_token =
@@ -995,7 +1002,9 @@ LlmLiteRtNpuCompiledModelExecutor::PopPendingAcceptedToken(
       processed_tokens_.AddPendingInputToken({std::move(next_token)}));
   current_step_++;
   // Privacy: wipe consumed token-id values, keeping the frontier token.
-  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  }
   latency_stats_.decode_token_queue_latency_us +=
       absl::ToInt64Microseconds(absl::Now() - start_queue);
 
@@ -1192,7 +1201,9 @@ LlmLiteRtNpuCompiledModelExecutor::Decode(
       processed_tokens_.AddPendingInputToken({std::move(first_token)}));
   current_step_++;
   // Privacy: wipe consumed token-id values, keeping the frontier token.
-  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  }
 
   latency_stats_.decode_num_tokens++;
   latency_stats_.decode_e2e_latency_us +=
@@ -1353,7 +1364,9 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::PrefillInternal(
   processed_tokens_.AddProcessedTokens(processed_input_tokens);
   // Privacy: wipe consumed token-id values from the accumulated history,
   // keeping the frontier token and preserving the vector size.
-  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  }
   if (!processed_input_tokens.empty()) {
     NPU_EXECUTOR_LOG(INFO) << "Prefill tokens: "
                            << FormatFirstN<int>(processed_input_tokens);
@@ -1701,7 +1714,9 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::DecodeSingleToken(
   LITERT_RETURN_IF_ERROR(DecodeInternal(step, token));
   current_step_ = step + 1;
   // Privacy: wipe consumed token-id values, keeping the frontier token.
-  processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubConsumedValues(current_step_ - 1);
+  }
   return absl::OkStatus();
 }
 
@@ -2207,7 +2222,9 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::Reset() {
   // Privacy: physically wipe the plaintext token-id bytes, symmetric to the
   // ClearKVCache() calls below. RollBackToStep(0) only resets the size and
   // leaves the token ids resident in the heap allocation.
-  processed_tokens_.ScrubAll();
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubAll();
+  }
   latency_stats_ = {};
   last_verify_activations_.clear();
   pending_accepted_tokens_.clear();
@@ -2274,7 +2291,9 @@ absl::Status LlmLiteRtNpuCompiledModelExecutor::RestoreContext(
   // Privacy: wipe the outgoing session's token-id bytes before the copy-assign
   // below reuses this vector's buffer, which would otherwise leave the previous
   // session's tokens resident in the spare capacity of the reused allocation.
-  processed_tokens_.ScrubAll();
+  if (npu_config_.enable_token_id_scrubbing) {
+    processed_tokens_.ScrubAll();
+  }
   processed_tokens_ = context_data->processed_context().processed_tokens();
   if (context_data->runtime_config().sampler_params.has_value()) {
     sampler_params_ = *context_data->runtime_config().sampler_params;

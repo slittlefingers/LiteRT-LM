@@ -731,6 +731,10 @@ absl::StatusOr<EngineSettings> CreateEngineSettings(
     gpu_artisan_settings.use_submodel = settings.use_submodel;
     executor_settings.SetBackendConfig(gpu_artisan_settings);
   }
+  if (settings.enable_npu_token_id_scrubbing && backend != Backend::NPU) {
+    return absl::InvalidArgumentError(
+        "NPU token-ID scrubbing requires the NPU backend.");
+  }
   if (backend == Backend::NPU) {
     auto& executor_settings = engine_settings.GetMutableMainExecutorSettings();
     ABSL_ASSIGN_OR_RETURN(
@@ -743,6 +747,8 @@ absl::StatusOr<EngineSettings> CreateEngineSettings(
         settings.use_hw_cache_update_for_npu;
     npu_settings.use_hw_ple_for_npu = settings.use_hw_ple_for_npu;
     npu_settings.enable_npu_debug_logging = settings.enable_npu_debug_logging;
+    npu_settings.enable_token_id_scrubbing =
+        settings.enable_npu_token_id_scrubbing;
     executor_settings.SetBackendConfig(npu_settings);
   }
   const std::optional<Backend> sampler_backend = GetSamplerBackend(settings);

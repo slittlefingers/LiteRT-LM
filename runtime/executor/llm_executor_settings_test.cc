@@ -663,6 +663,11 @@ TEST(LlmExecutorConfigTest, NpuConfigDefaults) {
   EXPECT_TRUE(config.use_hw_cache_update_for_npu);
   EXPECT_TRUE(config.use_hw_ple_for_npu);
   EXPECT_FALSE(config.enable_npu_debug_logging);
+  EXPECT_FALSE(config.enable_token_id_scrubbing);
+  // Appending the new field must not reinterpret existing aggregate arguments.
+  NpuConfig legacy_config{false, true, true, true, true, true};
+  EXPECT_TRUE(legacy_config.enable_npu_debug_logging);
+  EXPECT_FALSE(legacy_config.enable_token_id_scrubbing);
 }
 
 TEST(LlmExecutorConfigTest, SelectedSignatures) {

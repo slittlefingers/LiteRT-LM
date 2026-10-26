@@ -630,6 +630,18 @@ LITERT_LM_C_API_EXPORT
 void litert_lm_engine_settings_set_litert_dispatch_lib_dir(
     LiteRtLmEngineSettings* settings, const char* lib_dir);
 
+// Enables token-ID scrubbing in the specialized TF_LITE_AUX NPU executor.
+// Disabled by default. Set before creating the engine. True clears consumed
+// text IDs while preserving positions, the frontier/pending token and negative
+// multimodal sentinels; it also clears the processed-token array on reset and
+// context restore. This does not erase KV or token copies elsewhere in memory.
+// Engines using the generic NPU compiler-plugin path reject this option.
+// Returns 0 on success, -1 for invalid settings or a non-NPU backend; use
+// litert_lm_get_last_error_message() for details. This is a fork extension.
+LITERT_LM_C_API_EXPORT
+int litert_lm_engine_settings_set_npu_token_id_scrubbing(
+    LiteRtLmEngineSettings* settings, bool enabled);
+
 // Represents the activation data type.
 //
 // Added in version 0.1.0.

@@ -556,5 +556,32 @@ TEST(ProcessedTokensTest, ReduceTokenCandidates_OutOfRange) {
   EXPECT_TRUE(processed_tokens.GetTokenAtStep(4).empty());
 }
 
+TEST(ProcessedTokensTest, ScrubConsumedPreservesPositionsFrontierAndSentinels) {
+  ProcessedTokens tokens;
+  tokens.AddProcessedTokens({101, -1, 102, 103});
+  ASSERT_OK(tokens.AddPendingInputToken({std::make_shared<TokenData>(104)}));
+  tokens.ScrubConsumedValues(3);
+  EXPECT_EQ(tokens.TokenCount(), 5);
+  EXPECT_THAT(tokens.GetCopyOfTokens(),
+              testing::ElementsAre(testing::ElementsAre(0, -1, 0, 103, 104)));
+  const auto next = tokens.GetNextUnprocessedToken();
+  EXPECT_EQ(next.step, 4);
+  ASSERT_EQ(next.token.size(), 1);
+  EXPECT_EQ(next.token[0]->id(), 104);
+  ASSERT_OK(tokens.MarkPendingInputTokenAsProcessed());
+  tokens.ScrubConsumedValues(4);
+  EXPECT_THAT(tokens.GetTokensUnsafe(), testing::ElementsAre(0, -1, 0, 0, 104));
+}
+
+TEST(ProcessedTokensTest, ScrubAllResetsProcessedAndPendingState) {
+  ProcessedTokens tokens;
+  tokens.AddProcessedTokens({101, 102, 103});
+  ASSERT_OK(tokens.AddPendingInputToken({std::make_shared<TokenData>(104)}));
+  tokens.ScrubAll();
+  EXPECT_EQ(tokens.TokenCount(), 0);
+  EXPECT_TRUE(tokens.GetTokensUnsafe().empty());
+  EXPECT_TRUE(tokens.GetNextUnprocessedToken().token.empty());
+}
+
 }  // namespace
 }  // namespace litert::lm

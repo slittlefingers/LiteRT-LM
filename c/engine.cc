@@ -796,6 +796,24 @@ void litert_lm_engine_settings_set_activation_data_type(
   }
 }
 
+int litert_lm_engine_settings_set_npu_token_id_scrubbing(
+    LiteRtLmEngineSettings* settings, bool enabled) {
+  if (!settings || !settings->settings) {
+    litert::lm::c::SetLastError(absl::InvalidArgumentError(
+        "Invalid engine settings for NPU token-ID scrubbing."));
+    return -1;
+  }
+  auto& main_settings = settings->settings->GetMutableMainExecutorSettings();
+  auto config = main_settings.MutableBackendConfig<litert::lm::NpuConfig>();
+  if (!config.ok()) {
+    litert::lm::c::SetLastError(config.status());
+    return -1;
+  }
+  config->enable_token_id_scrubbing = enabled;
+  main_settings.SetBackendConfig(*config);
+  return 0;
+}
+
 void litert_lm_engine_settings_set_prefill_chunk_size(
     LiteRtLmEngineSettings* settings, int prefill_chunk_size) {
   if (settings && settings->settings) {

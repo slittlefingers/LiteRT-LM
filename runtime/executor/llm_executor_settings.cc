@@ -70,6 +70,8 @@ std::ostream& operator<<(std::ostream& os, const NpuConfig& config) {
   os << "use_hw_masking_for_npu: " << config.use_hw_masking_for_npu << "\n";
   os << "use_hw_cache_update_for_npu: " << config.use_hw_cache_update_for_npu
      << "\n";
+  os << "enable_token_id_scrubbing: " << config.enable_token_id_scrubbing
+     << "\n";
   os << "enable_npu_debug_logging: " << config.enable_npu_debug_logging << "\n";
   return os;
 }

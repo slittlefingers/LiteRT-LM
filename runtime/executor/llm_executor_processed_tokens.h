@@ -144,8 +144,8 @@ class ProcessedTokens {
   // candidates, including the vector's spare capacity (stale bytes left behind
   // by a previously longer history), then empties it. Unlike RollBackToStep(0),
   // which only resets the size and leaves the bytes resident in the heap
-  // allocation, this guarantees the token ids no longer exist in process
-  // memory. Intended for session teardown (Reset) and context switch, where the
+  // allocation. This only covers this vector's storage, not token copies or
+  // other process allocations. Intended for Reset and context switch, where the
   // final size is expected to be 0.
   void ScrubAll();
 

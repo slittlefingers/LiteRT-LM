@@ -66,5 +66,27 @@ TEST(LlmLiteRtCompiledModelExecutorFactoryTest, CanCreateStaticModelExecutor) {
                                                  *model_resources));
 }
 
+#if !defined(LITERT_DISABLE_NPU)
+TEST(LlmLiteRtCompiledModelExecutorFactoryTest,
+     TokenIdScrubbingRejectsGenericNpuPath) {
+  const auto model_path =
+      std::filesystem::path(::testing::SrcDir()) / kTestStaticModelPath;
+  ASSERT_OK_AND_ASSIGN(auto resources,
+                       CreateExecutorModelResources(model_path.string()));
+  ASSERT_OK_AND_ASSIGN(auto model_assets,
+                       ModelAssets::Create(model_path.string()));
+  ASSERT_OK_AND_ASSIGN(auto settings,
+                       LlmExecutorSettings::CreateDefault(model_assets,
+                                                          Backend::NPU));
+  NpuConfig config;
+  config.enable_token_id_scrubbing = true;
+  settings.SetBackendConfig(config);
+  LITERT_ASSERT_OK_AND_ASSIGN(
+      auto env, Environment::Create(std::vector<Environment::Option>()));
+  EXPECT_THAT(CreateLlmLiteRtCompiledModelExecutor(settings, env, *resources),
+              testing::status::StatusIs(absl::StatusCode::kUnimplemented));
+}
+#endif
+
 }  // namespace
 }  // namespace litert::lm

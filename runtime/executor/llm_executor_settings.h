@@ -160,6 +160,13 @@ struct NpuConfig {
 
   // Whether enable debug logging for NPU.
   bool enable_npu_debug_logging = false;
+
+  // Opt-in clearing of consumed token IDs in the specialized TF_LITE_AUX
+  // executor. Defaults off to preserve the original token-history behavior.
+  // Keeps vector size, the frontier/pending token and multimodal sentinels;
+  // also clears this executor's processed-token array on reset/context restore.
+  // Does not erase KV, token copies elsewhere, or arbitrary process memory.
+  bool enable_token_id_scrubbing = false;
 };
 std::ostream& operator<<(std::ostream& os, const NpuConfig& config);
 

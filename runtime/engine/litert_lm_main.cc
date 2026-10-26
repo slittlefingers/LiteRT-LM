@@ -152,6 +152,18 @@ absl::Status MainHelper(int argc, char** argv) {
     executor_settings.SetBackendConfig(cpu_settings);
   }
 
+  if (absl::GetFlag(FLAGS_enable_npu_token_id_scrubbing)) {
+    if (backend != Backend::NPU) {
+      return absl::InvalidArgumentError(
+          "--enable_npu_token_id_scrubbing requires --backend=npu.");
+    }
+    auto& executor_settings = engine_settings.GetMutableMainExecutorSettings();
+    ABSL_ASSIGN_OR_RETURN(auto npu_settings,
+                         executor_settings.MutableBackendConfig<litert::lm::NpuConfig>());
+    npu_settings.enable_token_id_scrubbing = true;
+    executor_settings.SetBackendConfig(npu_settings);
+  }
+
   // Create the engine.
   ABSL_ASSIGN_OR_RETURN(auto engine, litert::lm::EngineFactory::CreateDefault(
                                          std::move(engine_settings)));
